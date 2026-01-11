@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { db } from "../lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -12,9 +12,16 @@ const MENU = [
 
 export default function Order() {
   const router = useRouter();
-  const { table } = router.query;
+  const [table, setTable] = useState(null); // 🔥 핵심
 
   const [cart, setCart] = useState({});
+
+  // 🔥 router 준비된 후 table 읽기
+  useEffect(() => {
+    if (router.isReady) {
+      setTable(router.query.table);
+    }
+  }, [router.isReady]);
 
   const addQty = (menu) => {
     setCart((prev) => ({
@@ -54,7 +61,7 @@ export default function Order() {
     }
 
     await addDoc(collection(db, "orders"), {
-      table: table,
+      table,
       items,
       status: "cooking",
       createdAt: serverTimestamp(),
@@ -67,7 +74,7 @@ export default function Order() {
   return (
     <div style={{ padding: 40 }}>
       <h1>주문 페이지</h1>
-      <p>테이블 번호: {table}</p>
+      <p>테이블 번호: {table ?? "읽는 중..."}</p>
 
       {MENU.map((menu) => (
         <div
