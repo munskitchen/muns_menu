@@ -69,12 +69,16 @@ export default function Kitchen() {
       status: "canceled",
     });
   };
+  
+  const cookingOrders = orders.filter(
+    (o) => o.status === "cooking"
+  );
 
   return (
     <div style={styles.page}>
       <h1 style={styles.title}>🍳 주방 주문 현황</h1>
 
-      {orders.length === 0 && (
+      {cookingOrders.length === 0 && (
         <p style={styles.empty}>조리 중인 주문이 없습니다</p>
       )}
 
