@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { db } from "../lib/firebase";
 import {
   collection,
@@ -11,8 +11,27 @@ import {
 
 export default function Kitchen() {
   const [orders, setOrders] = useState([]);
+  const audioRef = useRef(null);
+  const prevCookingCount = useRef(0);
+  const audioUnlocked = useRef(false);
 
   useEffect(() => {
+    audioRef.current = new Audio("/order.mp3");
+    audioRef.current.volume = 1.0;
+
+    // ✅ [추가] iOS 오디오 unlock (최초 1회 터치)
+    const unlockAudio = async () => {
+      try {
+        await audioRef.current.play();
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioUnlocked.current = true;
+        document.removeEventListener("touchstart", unlockAudio);
+      } catch (e) {}
+    };
+
+    document.addEventListener("touchstart", unlockAudio);
+
     const q = query(
       collection(db, "orders"),
       orderBy("createdAt", "asc")
@@ -23,6 +42,17 @@ export default function Kitchen() {
         id: docSnap.id,
         ...docSnap.data(),
       }));
+
+      const cookingCount = data.filter((o) => o.status === "cooking").length;
+      if (
+        audioUnlocked.current &&
+        cookingCount > prevCookingCount.current
+      ) {
+        audioRef.current.play().catch(() => {});
+      }
+   
+      prevCookingCount.current = cookingCount;
+
       setOrders(data);
     });
 
@@ -32,6 +62,11 @@ export default function Kitchen() {
   const completeOrder = async (id) => {
     await updateDoc(doc(db, "orders", id), {
       status: "completed",
+    });
+  };
+  const cancelOrder = async (id) => {
+    await updateDoc(doc(db, "orders", id), {
+      status: "canceled",
     });
   };
 
@@ -67,6 +102,17 @@ export default function Kitchen() {
                 onClick={() => completeOrder(order.id)}
               >
                 완료
+              </button>
+
+              <button
+                style={{
+                  ...styles.done,
+                  marginTop: 10,
+                  backgroundColor: "#ff5252",
+                }}
+                onClick={() => completeOrder(order.id)}
+              >
+                취소
               </button>
             </div>
           ))}
