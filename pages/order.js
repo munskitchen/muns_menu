@@ -1,20 +1,21 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { db } from "../lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-
-const MENU = [
-  { id: 1, name: "떡볶이", price: 7000 },
-  { id: 2, name: "치즈 떡볶이", price: 8000 },
-  { id: 3, name: "짜장 떡볶이", price: 8000 },
-  { id: 4, name: "로제 떡볶이", price: 9000 },
-];
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  getDocs,
+  query,
+  where,
+  orderBy,
+} from "firebase/firestore";
 
 export default function Order() {
   const router = useRouter();
   const [table, setTable] = useState(null); // 🔥 핵심
-
   const [cart, setCart] = useState({});
+  const [menuList, setMenuList] = useState([]);
 
   // 🔥 router 준비된 후 table 읽기
   useEffect(() => {
@@ -22,6 +23,24 @@ export default function Order() {
       setTable(router.query.table);
     }
   }, [router.isReady]);
+
+    // 🔥 2-4 메뉴 불러오기
+  useEffect(() => {
+    const q = query(
+      collection(db, "menu"),
+      orderBy("order", "asc")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setMenuList(data);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const addQty = (menu) => {
     setCart((prev) => ({
@@ -73,6 +92,29 @@ export default function Order() {
 
   return (
     <div style={{ padding: 40 }}>
+
+      <div style={styles.menuGrid}>
+        {menuList.map((menu) => (
+          <button
+            key={menu.id}style={styles.menuButton}
+            onClick={() => {
+              setCart((prev) => ({
+                ...prev,
+                [menu.id]: {
+                  id: menu.id,
+                  name: menu.name,
+                  price: menu.price,
+                  qty: (prev[menu.id]?.qty || 0) + 1,
+                },
+              }));
+            }}
+          >
+            <div>{menu.name}</div>
+            <div>${menu.price}</div>
+          </button>
+        ))}
+        </div>
+
       <h1>주문 페이지</h1>
       <p>테이블 번호: {table ?? "읽는 중..."}</p>
 
