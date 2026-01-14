@@ -5,32 +5,27 @@ import {
   collection,
   addDoc,
   serverTimestamp,
-  getDocs,
   query,
-  where,
   orderBy,
   onSnapshot,
 } from "firebase/firestore";
 
 export default function Order() {
   const router = useRouter();
-  const [table, setTable] = useState(null); // 🔥 핵심
+  const [table, setTable] = useState(null);
   const [cart, setCart] = useState({});
   const [menuList, setMenuList] = useState([]);
 
-  // 🔥 router 준비된 후 table 읽기
+  // 테이블 번호 읽기
   useEffect(() => {
     if (router.isReady) {
       setTable(router.query.table);
     }
-  }, [router.isReady]);
+  }, [router.isReady, router.query.table]);
 
-    // 🔥 2-4 메뉴 불러오기
+  // 메뉴 실시간 불러오기
   useEffect(() => {
-    const q = query(
-      collection(db, "menu"),
-      orderBy("order", "asc")
-    );
+    const q = query(collection(db, "menu"), orderBy("order", "asc"));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map((doc) => ({
@@ -68,11 +63,20 @@ export default function Order() {
 
   return (
     <div style={{ padding: 40 }}>
+      <h1>주문 페이지</h1>
+      <p>테이블 번호: {table ?? "읽는 중..."}</p>
 
-      <div style={styles.menuGrid}>
+      <div>
         {menuList.map((menu) => (
           <button
-            key={menu.id}style={styles.menuButton}
+            key={menu.id}
+            style={{
+              display: "block",
+              width: "100%",
+              padding: 12,
+              marginBottom: 10,
+              border: "1px solid #ddd",
+            }}
             onClick={() => {
               setCart((prev) => ({
                 ...prev,
@@ -89,10 +93,7 @@ export default function Order() {
             <div>${menu.price}</div>
           </button>
         ))}
-        </div>
-
-      <h1>주문 페이지</h1>
-      <p>테이블 번호: {table ?? "읽는 중..."}</p>
+      </div>
 
       <button
         onClick={submitOrder}
