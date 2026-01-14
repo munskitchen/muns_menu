@@ -14,23 +14,23 @@ export default function Kitchen() {
   const audioRef = useRef(null);
   const prevCookingCount = useRef(0);
   const audioUnlocked = useRef(false);
-  
-  //시간표시 추가
-  const formatTime = (timestamp) => {
-  if (!timestamp) return "";
 
-  const date = timestamp.toDate();
-  return date.toLocaleTimeString("ko-KR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
+  // ⏰ 주문 시간 포맷
+  const formatTime = (timestamp) => {
+    if (!timestamp || !timestamp.toDate) return "";
+    const date = timestamp.toDate();
+    return date.toLocaleTimeString("ko-KR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   useEffect(() => {
+    // 🔔 알림 사운드 준비
     audioRef.current = new Audio("/order.mp3");
     audioRef.current.volume = 1.0;
 
-    // ✅ [추가] iOS 오디오 unlock (최초 1회 터치)
+    // 🔓 iOS 오디오 unlock (최초 1회 터치)
     const unlockAudio = async () => {
       try {
         await audioRef.current.play();
@@ -40,7 +40,6 @@ export default function Kitchen() {
         document.removeEventListener("touchstart", unlockAudio);
       } catch (e) {}
     };
-
     document.addEventListener("touchstart", unlockAudio);
 
     const q = query(
@@ -54,33 +53,39 @@ export default function Kitchen() {
         ...docSnap.data(),
       }));
 
-      const cookingCount = data.filter((o) => o.status === "cooking").length;
+      const cookingCount = data.filter(
+        (o) => o.status === "cooking"
+      ).length;
+
+      // 🔔 새 주문 들어오면 소리
       if (
         audioUnlocked.current &&
         cookingCount > prevCookingCount.current
       ) {
         audioRef.current.play().catch(() => {});
       }
-   
-      prevCookingCount.current = cookingCount;
 
+      prevCookingCount.current = cookingCount;
       setOrders(data);
     });
 
     return () => unsubscribe();
   }, []);
 
+  // ✅ 주문 완료
   const completeOrder = async (id) => {
     await updateDoc(doc(db, "orders", id), {
       status: "completed",
     });
   };
+
+  // ❌ 주문 취소
   const cancelOrder = async (id) => {
     await updateDoc(doc(db, "orders", id), {
       status: "canceled",
     });
   };
-  
+
   const cookingOrders = orders.filter(
     (o) => o.status === "cooking"
   );
@@ -94,47 +99,46 @@ export default function Kitchen() {
       )}
 
       <div style={styles.grid}>
-        {orders
-          .filter((o) => o.status === "cooking")
-          .map((order) => (
-            <div key={order.id} style={styles.card}>
-              <div style={styles.header}>
-                <span style={styles.table}>
-                  테이블 {order.table}
-                </span>
-              </div>
-
-              <div style={{ opacity: 0.6, marginBottom: 6 }}>
-                주문시간: {formatTime(order.createdAt)}
-              </div>
-
-              <ul style={styles.items}>
-                {order.items.map((item, idx) => (
-                  <li key={idx} style={styles.item}>
-                    {item.name} × {item.qty}
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                style={styles.done}
-                onClick={() => completeOrder(order.id)}
-              >
-                완료
-              </button>
-
-              <button
-                style={{
-                  ...styles.done,
-                  marginTop: 10,
-                  backgroundColor: "#ff5252",
-                }}
-                onClick={() => completeOrder(order.id)}
-              >
-                취소
-              </button>
+        {cookingOrders.map((order) => (
+          <div key={order.id} style={styles.card}>
+            <div style={styles.header}>
+              <span style={styles.table}>
+                테이블 {order.table}
+              </span>
             </div>
-          ))}
+
+            {/* ⏰ 주문 시간 */}
+            <div style={{ opacity: 0.6, marginBottom: 8 }}>
+              주문시간: {formatTime(order.createdAt)}
+            </div>
+
+            <ul style={styles.items}>
+              {order.items.map((item, idx) => (
+                <li key={idx} style={styles.item}>
+                  {item.name} × {item.qty}
+                </li>
+              ))}
+            </ul>
+
+            <button
+              style={styles.done}
+              onClick={() => completeOrder(order.id)}
+            >
+              완료
+            </button>
+
+            <button
+              style={{
+                ...styles.done,
+                marginTop: 10,
+                backgroundColor: "#ff5252",
+              }}
+              onClick={() => cancelOrder(order.id)}
+            >
+              취소
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -168,7 +172,7 @@ const styles = {
     padding: 20,
   },
   header: {
-    marginBottom: 10,
+    marginBottom: 6,
   },
   table: {
     fontSize: 28,
