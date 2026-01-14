@@ -62,21 +62,43 @@ export default function Order() {
   };
 
   return (
-    <div style={{ padding: 40 }}>
-      <h1>주문 페이지</h1>
-      <p>테이블 번호: {table ?? "읽는 중..."}</p>
+    <div style={styles.menuGrid}>
+  {menuList.map((menu) => {
+    const qty = cart[menu.id]?.qty || 0;
 
-      <div>
-        {menuList.map((menu) => (
+    return (
+      <div key={menu.id} style={styles.menuCard}>
+        <div style={{ fontSize: 18, fontWeight: "bold" }}>
+          {menu.name}
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          ${menu.price}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <button
-            key={menu.id}
-            style={{
-              display: "block",
-              width: "100%",
-              padding: 12,
-              marginBottom: 10,
-              border: "1px solid #ddd",
+            onClick={() => {
+              setCart((prev) => {
+                if (!prev[menu.id]) return prev;
+                const newQty = prev[menu.id].qty - 1;
+                if (newQty <= 0) {
+                  const copy = { ...prev };
+                  delete copy[menu.id];
+                  return copy;
+                }
+                return {
+                  ...prev,
+                  [menu.id]: { ...prev[menu.id], qty: newQty },
+                };
+              });
             }}
+          >
+            -
+          </button>
+
+          <span>{qty}</span>
+
+          <button
             onClick={() => {
               setCart((prev) => ({
                 ...prev,
@@ -84,23 +106,17 @@ export default function Order() {
                   id: menu.id,
                   name: menu.name,
                   price: menu.price,
-                  qty: (prev[menu.id]?.qty || 0) + 1,
+                  qty: qty + 1,
                 },
               }));
             }}
           >
-            <div>{menu.name}</div>
-            <div>${menu.price}</div>
+            +
           </button>
-        ))}
+        </div>
       </div>
-
-      <button
-        onClick={submitOrder}
-        style={{ marginTop: 20, fontSize: 18 }}
-      >
-        주문하기
-      </button>
-    </div>
+    );
+  })}
+</div>
   );
 }
