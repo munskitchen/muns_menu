@@ -107,6 +107,10 @@ export default function Kitchen() {
               </span>
             </div>
 
+            <div style={styles.time}>
+              주문시간: {formatTime(order.createdAt)}
+            </div>
+
             {/* ⏰ 주문 시간 */}
             <div style={{ opacity: 0.6, marginBottom: 8 }}>
               주문시간: {formatTime(order.createdAt)}
@@ -196,5 +200,10 @@ const styles = {
     border: "none",
     borderRadius: 8,
     color: "black",
+  },
+  time: {
+    fontSize: 16,
+    opacity: 0.6,
+    marginBottom: 10,
   },
 };
