@@ -26,11 +26,11 @@ export default function Kitchen() {
   };
 
   useEffect(() => {
-    // 🔔 알림 사운드 준비
+    // 🔔 알림 사운드
     audioRef.current = new Audio("/order.mp3");
     audioRef.current.volume = 1.0;
 
-    // 🔓 iOS 오디오 unlock (최초 1회 터치)
+    // 🔓 iOS 오디오 unlock
     const unlockAudio = async () => {
       try {
         await audioRef.current.play();
@@ -38,7 +38,7 @@ export default function Kitchen() {
         audioRef.current.currentTime = 0;
         audioUnlocked.current = true;
         document.removeEventListener("touchstart", unlockAudio);
-      } catch (e) {}
+      } catch {}
     };
     document.addEventListener("touchstart", unlockAudio);
 
@@ -57,7 +57,7 @@ export default function Kitchen() {
         (o) => o.status === "cooking"
       ).length;
 
-      // 🔔 새 주문 들어오면 소리
+      // 🔔 새 주문 알림
       if (
         audioUnlocked.current &&
         cookingCount > prevCookingCount.current
@@ -72,14 +72,14 @@ export default function Kitchen() {
     return () => unsubscribe();
   }, []);
 
-  // ✅ 주문 완료
+  // ✅ 완료
   const completeOrder = async (id) => {
     await updateDoc(doc(db, "orders", id), {
       status: "completed",
     });
   };
 
-  // ❌ 주문 취소
+  // ❌ 취소
   const cancelOrder = async (id) => {
     await updateDoc(doc(db, "orders", id), {
       status: "canceled",
@@ -107,12 +107,8 @@ export default function Kitchen() {
               </span>
             </div>
 
+            {/* ⏰ 주문시간 */}
             <div style={styles.time}>
-              주문시간: {formatTime(order.createdAt)}
-            </div>
-
-            {/* ⏰ 주문 시간 */}
-            <div style={{ opacity: 0.6, marginBottom: 8 }}>
               주문시간: {formatTime(order.createdAt)}
             </div>
 
@@ -183,6 +179,11 @@ const styles = {
     fontWeight: "bold",
     color: "#00e0ff",
   },
+  time: {
+    fontSize: 16,
+    opacity: 0.6,
+    marginBottom: 10,
+  },
   items: {
     listStyle: "none",
     padding: 0,
@@ -200,10 +201,5 @@ const styles = {
     border: "none",
     borderRadius: 8,
     color: "black",
-  },
-  time: {
-    fontSize: 16,
-    opacity: 0.6,
-    marginBottom: 10,
   },
 };
