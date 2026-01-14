@@ -14,6 +14,17 @@ export default function Kitchen() {
   const audioRef = useRef(null);
   const prevCookingCount = useRef(0);
   const audioUnlocked = useRef(false);
+  
+  //시간표시 추가
+  const formatTime = (timestamp) => {
+  if (!timestamp) return "";
+
+  const date = timestamp.toDate();
+  return date.toLocaleTimeString("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
 
   useEffect(() => {
     audioRef.current = new Audio("/order.mp3");
@@ -91,6 +102,10 @@ export default function Kitchen() {
                 <span style={styles.table}>
                   테이블 {order.table}
                 </span>
+              </div>
+
+              <div style={{ opacity: 0.6, marginBottom: 6 }}>
+                주문시간: {formatTime(order.createdAt)}
               </div>
 
               <ul style={styles.items}>
