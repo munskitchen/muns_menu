@@ -1,12 +1,9 @@
+import { useEffect } from "react";
+
 export default function MenuPage() {
-  return (
-      <iframe
-        src="/menu.pdf"
-        style={{
-          width: "100vw",
-          height: "100vh",
-          border: "none",
-        }}
-      />
-  );
+  useEffect(() => {
+    window.location.href = "/menu.pdf";
+  }, []);
+
+  return <p>Loading menu...</p>;
 }
