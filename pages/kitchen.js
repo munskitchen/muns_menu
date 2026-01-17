@@ -11,13 +11,18 @@ import {
 
 export default function Kitchen() {
   const [orders, setOrders] = useState([]);
-  const audioRef = useRef(null);
-  const prevCookingCount = useRef(0);
-  const audioUnlocked = useRef(false);
 
-  // ⏰ 주문 시간 포맷
+  // 🔔 오디오
+  const audioRef = useRef(null);
+  const audioUnlocked = useRef(false);
+  const prevCookingCount = useRef(0);
+
+  /* =====================
+     ⏰ 시간 관련 함수
+  ===================== */
+
   const formatTime = (timestamp) => {
-    if (!timestamp || !timestamp.toDate) return "";
+    if (!timestamp?.toDate) return "";
     const date = timestamp.toDate();
     return date.toLocaleTimeString("ko-KR", {
       hour: "2-digit",
@@ -25,19 +30,68 @@ export default function Kitchen() {
     });
   };
 
+  const elapsedMinutes = (timestamp) => {
+    if (!timestamp?.toDate) return 0;
+    return Math.floor(
+      (Date.now() - timestamp.toDate().getTime()) / 60000
+    );
+  };
+
+  /* =====================
+     🔒 화면 꺼짐 방지
+  ===================== */
   useEffect(() => {
-    // 🔔 알림 사운드
+    let wakeLock = null;
+
+    const requestWakeLock = async () => {
+      try {
+        if ("wakeLock" in navigator) {
+          if (wakeLock) await wakeLock.release();
+          wakeLock = await navigator.wakeLock.request("screen");
+          console.log("🔒 WakeLock 활성화");
+        }
+      } catch (e) {
+        console.log("WakeLock 실패", e);
+      }
+    };
+
+    requestWakeLock();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      if (wakeLock) wakeLock.release();
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibility
+      );
+    };
+  }, []);
+
+  /* =====================
+     🔔 오디오 + 주문 리스너
+  ===================== */
+  useEffect(() => {
     audioRef.current = new Audio("/order.mp3");
     audioRef.current.volume = 1.0;
 
-    // 🔓 iOS 오디오 unlock
+    // iOS 오디오 unlock
     const unlockAudio = async () => {
       try {
         await audioRef.current.play();
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
         audioUnlocked.current = true;
-        document.removeEventListener("touchstart", unlockAudio);
+        document.removeEventListener(
+          "touchstart",
+          unlockAudio
+        );
       } catch {}
     };
     document.addEventListener("touchstart", unlockAudio);
@@ -72,14 +126,15 @@ export default function Kitchen() {
     return () => unsubscribe();
   }, []);
 
-  // ✅ 완료
+  /* =====================
+     ✅ 상태 변경
+  ===================== */
   const completeOrder = async (id) => {
     await updateDoc(doc(db, "orders", id), {
       status: "completed",
     });
   };
 
-  // ❌ 취소
   const cancelOrder = async (id) => {
     await updateDoc(doc(db, "orders", id), {
       status: "canceled",
@@ -90,60 +145,90 @@ export default function Kitchen() {
     (o) => o.status === "cooking"
   );
 
+  /* =====================
+     🖥 UI
+  ===================== */
   return (
     <div style={styles.page}>
       <h1 style={styles.title}>🍳 주방 주문 현황</h1>
 
       {cookingOrders.length === 0 && (
-        <p style={styles.empty}>조리 중인 주문이 없습니다</p>
+        <p style={styles.empty}>
+          조리 중인 주문이 없습니다
+        </p>
       )}
 
       <div style={styles.grid}>
-        {cookingOrders.map((order) => (
-          <div key={order.id} style={styles.card}>
-            <div style={styles.header}>
-              <span style={styles.table}>
-                테이블 {order.table}
-              </span>
-            </div>
+        {cookingOrders.map((order) => {
+          const elapsed = elapsedMinutes(order.createdAt);
+          const danger = elapsed >= 10;
 
-            {/* ⏰ 주문시간 */}
-            <div style={styles.time}>
-              주문시간: {formatTime(order.createdAt)}
-            </div>
-
-            <ul style={styles.items}>
-              {order.items.map((item, idx) => (
-                <li key={idx} style={styles.item}>
-                  {item.name} × {item.qty}
-                </li>
-              ))}
-            </ul>
-
-            <button
-              style={styles.done}
-              onClick={() => completeOrder(order.id)}
-            >
-              완료
-            </button>
-
-            <button
+          return (
+            <div
+              key={order.id}
               style={{
-                ...styles.done,
-                marginTop: 10,
-                backgroundColor: "#ff5252",
+                ...styles.card,
+                border: danger
+                  ? "3px solid #ff5252"
+                  : "3px solid transparent",
               }}
-              onClick={() => cancelOrder(order.id)}
             >
-              취소
-            </button>
-          </div>
-        ))}
+              <div style={styles.header}>
+                <span style={styles.table}>
+                  테이블 {order.table}
+                </span>
+              </div>
+
+              <div style={styles.time}>
+                주문시간: {formatTime(order.createdAt)}
+              </div>
+
+              <div
+                style={{
+                  fontSize: 16,
+                  color: danger ? "#ff5252" : "#aaa",
+                  marginBottom: 10,
+                }}
+              >
+                경과: {elapsed}분
+              </div>
+
+              <ul style={styles.items}>
+                {order.items.map((item, idx) => (
+                  <li key={idx} style={styles.item}>
+                    {item.name} × {item.qty}
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                style={styles.done}
+                onClick={() => completeOrder(order.id)}
+              >
+                완료
+              </button>
+
+              <button
+                style={{
+                  ...styles.done,
+                  backgroundColor: "#ff5252",
+                  marginTop: 10,
+                }}
+                onClick={() => cancelOrder(order.id)}
+              >
+                취소
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
+/* =====================
+   🎨 스타일
+===================== */
 const styles = {
   page: {
     padding: 20,
@@ -182,7 +267,7 @@ const styles = {
   time: {
     fontSize: 16,
     opacity: 0.6,
-    marginBottom: 10,
+    marginBottom: 6,
   },
   items: {
     listStyle: "none",
