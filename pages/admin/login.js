@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { useRouter } from "next/router";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../lib/firebase";
-import { useRouter } from "next/router";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -12,7 +12,7 @@ export default function AdminLogin() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       router.push("/admin/menu");
-    } catch (e) {
+    } catch (err) {
       alert("로그인 실패");
     }
   };
@@ -20,19 +20,20 @@ export default function AdminLogin() {
   return (
     <div style={{ padding: 40 }}>
       <h1>관리자 로그인</h1>
+
       <input
         placeholder="이메일"
-        value={email}
         onChange={(e) => setEmail(e.target.value)}
+        style={{ display: "block", marginBottom: 10 }}
       />
-      <br />
+
       <input
         type="password"
         placeholder="비밀번호"
-        value={password}
         onChange={(e) => setPassword(e.target.value)}
+        style={{ display: "block", marginBottom: 20 }}
       />
-      <br />
+
       <button onClick={login}>로그인</button>
     </div>
   );
